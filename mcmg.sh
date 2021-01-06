@@ -17,7 +17,7 @@ fi
 
 yn=n
 
-startsrv(){
+start(){
 	if test -f "$mcdir/$jar"; then
 		screen -dmS $name bash -c \
 		"cd '$mcdir' && \
@@ -27,12 +27,12 @@ startsrv(){
 		read -p "server jar not found, download now? [y/N]" yn
 		case $yn in
 			[Yy]*) echo setting up $name...; update ;; 
-			[Nn]*) exit ;;
+			*) exit ;;
 		esac
 	fi
 }
 
-stopsrv(){
+stop(){
 	screen -S $name -X stuff $'stop\n'
 	echo stopping $name...
 	while screen -ls | grep -q $name
@@ -40,6 +40,11 @@ stopsrv(){
 			sleep 5
 		done
 	echo $name stopped
+}
+
+restart(){
+	stop &&
+	start
 }
 
 update(){
@@ -52,7 +57,7 @@ update(){
 		read -p "install now? [y/N]" yn
 		case $yn in
 			[Yy]*) echo installing $name...; upgrade ;; 
-			[Nn]*) exit ;;
+			*) exit ;;
 		esac
 	else
 		echo no newer version available
@@ -69,8 +74,8 @@ upgrade(){
 			echo installed jar
 			read -p "start server now? [y/N]" yn
 			case $yn in
-				[Yy]*) startsrv ;; 
-				[Nn]*) exit ;;
+				[Yy]*) start ;; 
+				*) exit ;;
 			esac
 		else
 			echo no upgrade available, try update
@@ -78,23 +83,19 @@ upgrade(){
 	else
 		read -p "server is running, stop and upgrade? [y/N]" yn
 		case $yn in
-			[Yy]*) stopsrv && upgrade ;;
-			[Nn]*) exit ;;
+			[Yy]*) stop && upgrade ;;
+			*) exit ;;
 		esac
 	fi
 }
 
-if [ $1 == 'start' ]; then
-	startsrv
-elif [ $1 == 'stop' ]; then
-	stopsrv
-elif [ $1 == 'restart' ]; then
-	stopsrv &&
-	startsrv
-elif [ $1 == 'update' ]; then
-	$1
-elif [ $1 == 'upgrade' ]; then
-	$1
-else
-	echo unknown argument $1
+if [ -z "$1" ]; then
+	echo select a function
+	read -p "start, stop, restart, update, upgrade, exit: " input
+	set -- $input
 fi
+
+case $1 in
+	start|stop|restart|update|upgrade|exit) $1 ;;
+	*) echo unknown argument $1 ;;
+esac
